@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -321,7 +320,7 @@ with tab1:
             color='Value',
             animation_frame='Year',
             color_continuous_scale="Reds",
-            range_color=[0, anim_df['Value'].quantile(0.95)], # Fix scale to avoid flickering
+            range_color=[0, anim_df['Value'].quantile(0.95)], 
             hover_name='Provinsi',
             hover_data={'Value': ':,.0f'},
             title="Evolusi Deforestasi Tahunan",
@@ -332,6 +331,29 @@ with tab1:
         )
         fig_anim.update_layout(height=600, margin={"r":0,"t":40,"l":0,"b":0})
         st.plotly_chart(fig_anim, use_container_width=True)
+        
+        # HEATMAP
+        st.divider()
+        st.subheader("🔥 Heatmap: Intensitas Deforestasi")
+        st.markdown("Peta panas untuk melihat pola tahunan per provinsi.")
+        
+        heatmap_df = data_tidy[data_tidy['Category'].str.contains("Total Deforestasi")].copy()
+        heatmap_pivot = heatmap_df.pivot_table(index='Provinsi', columns='Year', values='Value', aggfunc='sum')
+        # Sort by 2022 desc
+        if 2022 in heatmap_pivot.columns:
+            heatmap_pivot = heatmap_pivot.sort_values(by=2022, ascending=False)
+        
+        fig_heat = px.imshow(
+            heatmap_pivot,
+            labels=dict(x="Tahun", y="Provinsi", color="Luas (Ha)"),
+            x=heatmap_pivot.columns,
+            y=heatmap_pivot.index,
+            color_continuous_scale="Reds",
+            aspect="auto",
+            title="Heatmap Deforestasi (Urutan Tertinggi 2022)"
+        )
+        fig_heat.update_layout(height=800)
+        st.plotly_chart(fig_heat, use_container_width=True)
     
         st.caption("*Catatan: Warna merah pekat menunjukkan deforestasi tinggi pada tahun tersebut.*")
 
@@ -397,7 +419,7 @@ with tab4:
 
 # --- TAB 5: WINNING FEATURES (ANALISIS LANJUTAN) ---
 with tab5:
-    st.header(" Analisis Lanjutan")
+    st.header("🏆 Analisis Lanjutan (Winning Insights)")
     
     col_pareto, col_radar = st.columns(2)
     
@@ -446,20 +468,16 @@ with tab5:
         st.subheader("2. Head-to-Head Comparison")
         st.markdown("Bandingkan profil deforestasi 2 provinsi.")
         
-        # Fixed: Use unique list excluding 'Semua' for comparison
         prov_list_compare = sorted(data_tidy['Provinsi'].unique().tolist())
         prov1 = st.selectbox("Provinsi 1", prov_list_compare, index=0)
         prov2 = st.selectbox("Provinsi 2", prov_list_compare, index=min(1, len(prov_list_compare)-1))
         
         if prov1 and prov2:
-            # Prepare Radar Data: Compare Hutan vs APL (Mean values)
             radar_df = data_tidy[data_tidy['Provinsi'].isin([prov1, prov2])]
             radar_df = radar_df[~radar_df['Category'].str.contains("Total")]
             
-            # Aggregate Mean per Category
             radar_pivot = radar_df.groupby(['Provinsi', 'Category'])['Value'].mean().reset_index()
             
-            # REPLACEMENT: Grouped Bar Chart (Easier to understand)
             fig_compare = px.bar(
                 radar_pivot, 
                 x='Category', 
@@ -468,7 +486,7 @@ with tab5:
                 barmode='group',
                 title=f"Perbandingan Rata-rata: {prov1} vs {prov2}",
                 labels={'Value': 'Rata-rata Deforestasi (Ha)', 'Category': 'Kategori Lahan'},
-                color_discrete_sequence=['#FF5722', '#03A9F4'] # Orange vs Light Blue
+                color_discrete_sequence=['#FF5722', '#03A9F4'] 
             )
             fig_compare.update_layout(
                 legend=dict(orientation="h", y=1.1, x=0.5, xanchor="center"),
@@ -476,12 +494,66 @@ with tab5:
             )
             st.plotly_chart(fig_compare, use_container_width=True)
             
-            # Simple text insight
             val1 = cluster_data[cluster_data['Provinsi'] == prov1]['Value'].values[0]
             val2 = cluster_data[cluster_data['Provinsi'] == prov2]['Value'].values[0]
             diff = val1 - val2
             
             if diff > 0:
-                st.caption(f"**Insight:** {prov1} memiliki rata-rata deforestasi lebih tinggi **{diff:,.0f} Ha** dibandingkan {prov2}.")
+                st.caption(f"**Insight:** {prov1} lebih tinggi **{diff:,.0f} Ha** dibanding {prov2}.")
             else:
-                st.caption(f"**Insight:** {prov2} memiliki rata-rata deforestasi lebih tinggi **{abs(diff):,.0f} Ha** dibandingkan {prov1}.")
+                st.caption(f"**Insight:** {prov2} lebih tinggi **{abs(diff):,.0f} Ha** dibanding {prov1}.")
+    
+    # QUADRANT ANALYSIS
+    st.divider()
+    st.subheader("3. Scatter Plot Deforestasi")
+    st.markdown("Memetakan provinsi ke dalam 4 kuadran berdasarkan karakteristik: **Deforestasi Kawasan Hutan vs APL**.")
+    
+    # Pivot for Quadrant
+    quad_df = data_tidy[~data_tidy['Category'].str.contains("Total")].copy()
+    quad_pivot = quad_df.groupby(['Provinsi', 'Category'])['Value'].mean().unstack().reset_index()
+    
+    # Get dynamic column names (Assume 2 columns roughly like 'Within Forest', 'Outside Forest')
+    cols = quad_pivot.columns.tolist()
+    cat_cols = [c for c in cols if c != 'Provinsi']
+    
+    if len(cat_cols) >= 2:
+        x_col = cat_cols[0] 
+        y_col = cat_cols[1] 
+        
+        fig_quad = px.scatter(
+            quad_pivot,
+            x=x_col,
+            y=y_col,
+            color='Provinsi',
+            text='Provinsi',
+            size=(quad_pivot[x_col] + quad_pivot[y_col]).abs() + 10, # Size by total (abs to handle negative)
+            title=f"Matrix: {x_col} vs {y_col}",
+            labels={x_col: f"{x_col} (Mean)", y_col: f"{y_col} (Mean)"}
+        )
+        
+        # Mean Lines
+        x_mean = quad_pivot[x_col].mean()
+        y_mean = quad_pivot[y_col].mean()
+        
+        fig_quad.add_hline(y=y_mean, line_dash="dash", line_color="gray", annotation_text="Avg APL")
+        fig_quad.add_vline(x=x_mean, line_dash="dash", line_color="gray", annotation_text="Avg Hutan")
+        
+        # Annotate Quadrants (Optional textual description)
+        fig_quad.add_annotation(x=quad_pivot[x_col].max(), y=quad_pivot[y_col].max(), text="HIGH RISK (Double)", showarrow=False, font=dict(color="red"))
+        
+        fig_quad.update_traces(textposition='top center')
+        fig_quad.update_layout(showlegend=False, height=600)
+        st.plotly_chart(fig_quad, use_container_width=True)
+        
+        # Interpretation Guide
+        st.info("""
+        **📖 Cara Membaca Scatter Plot:**
+        *   **Sumbu X (Mendatar):** Deforestasi di **APL (Area Penggunaan Lain)**. Semakin ke kanan, semakin tinggi pembukaan lahan di area non-hutan (biasanya legal/izin).
+        *   **Sumbu Y (Tegak):** Deforestasi di **Kawasan Hutan**. Semakin ke atas, semakin tinggi perambahan di hutan lindung/konservasi.
+        
+        **4 Kuadran:**
+        *   🔴 **Kanan Atas (Bahaya Ganda):** Deforestasi tinggi di Hutan & APL. Masalah paling kompleks.
+        *   🟠 **Kiri Atas (Perambah Hutan):** Fokus masalah ada di dalam kawasan hutan (indikasi logging/perambahan).
+        *   🔵 **Kanan Bawah (Area Legal):** Pembukaan lahan masif di APL, hutan relatif aman.
+        *   🟢 **Kiri Bawah (Relatif Aman):** Deforestasi rendah di kedua sektor.
+        """)
