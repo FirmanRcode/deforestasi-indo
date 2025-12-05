@@ -335,7 +335,7 @@ with tab1:
         # HEATMAP
         st.divider()
         st.subheader("Heatmap: Intensitas Deforestasi")
-        st.markdown("Peta panas untuk melihat pola tahunan per provinsi.")
+        st.markdown("Untuk melihat pola tahunan per provinsi.")
         
         heatmap_df = data_tidy[data_tidy['Category'].str.contains("Total Deforestasi")].copy()
         heatmap_pivot = heatmap_df.pivot_table(index='Provinsi', columns='Year', values='Value', aggfunc='sum')
