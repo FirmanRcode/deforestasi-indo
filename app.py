@@ -556,4 +556,4 @@ with tab5:
         *   🟠 **Kiri Atas (Perambah Hutan):** Fokus masalah ada di dalam kawasan hutan (indikasi logging/perambahan).
         *   🔵 **Kanan Bawah (Area Legal):** Pembukaan lahan masif di APL, hutan relatif aman.
         *   🟢 **Kiri Bawah (Relatif Aman):** Deforestasi rendah di kedua sektor.
-        """)"
+        """)
