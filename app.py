@@ -334,7 +334,7 @@ with tab1:
         
         # HEATMAP
         st.divider()
-        st.subheader("🔥 Heatmap: Intensitas Deforestasi")
+        st.subheader("Heatmap: Intensitas Deforestasi")
         st.markdown("Peta panas untuk melihat pola tahunan per provinsi.")
         
         heatmap_df = data_tidy[data_tidy['Category'].str.contains("Total Deforestasi")].copy()
@@ -419,7 +419,7 @@ with tab4:
 
 # --- TAB 5: WINNING FEATURES (ANALISIS LANJUTAN) ---
 with tab5:
-    st.header("🏆 Analisis Lanjutan (Winning Insights)")
+    st.header("Analisis Lanjutan)")
     
     col_pareto, col_radar = st.columns(2)
     
